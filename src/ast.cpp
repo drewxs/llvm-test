@@ -28,12 +28,59 @@ BinExprAST::BinExprAST(char op, unique_ptr<ExprAST> lhs,
                        unique_ptr<ExprAST> rhs)
     : op(op), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 
-llvm::Value *BinExprAST::codegen() { return nullptr; }
+llvm::Value *BinExprAST::codegen() {
+  llvm::Value *L = lhs->codegen();
+  llvm::Value *R = rhs->codegen();
+
+  if (!L || !R) {
+    return nullptr;
+  }
+
+  switch (op) {
+  case '+':
+    return BUILDER->CreateFAdd(L, R, "addtmp");
+  case '-':
+    return BUILDER->CreateFSub(L, R, "subtmp");
+  case '*':
+    return BUILDER->CreateFMul(L, R, "multmp");
+  case '/':
+    return BUILDER->CreateFDiv(L, R, "divtmp");
+  case '<':
+    L = BUILDER->CreateFCmpULT(L, R, "cmptmp");
+    return BUILDER->CreateUIToFP(L, llvm::Type::getDoubleTy(*CONTEXT),
+                                 "booltmp");
+  case '>':
+    L = BUILDER->CreateFCmpUGT(L, R, "cmptmp");
+    return BUILDER->CreateUIToFP(L, llvm::Type::getDoubleTy(*CONTEXT),
+                                 "booltmp");
+  default:
+    return log_err_v("invalid binary operator");
+  }
+}
 
 CallExprAST::CallExprAST(const string &callee, vector<unique_ptr<ExprAST>> args)
     : callee(callee), args(std::move(args)) {}
 
-llvm::Value *CallExprAST::codegen() { return nullptr; }
+llvm::Value *CallExprAST::codegen() {
+  llvm::Function *callee_f = MODULE->getFunction(callee);
+  if (!callee_f) {
+    return log_err_v("Unknown function referenced");
+  }
+
+  if (callee_f->arg_size() != args.size()) {
+    return log_err_v("Incorrect # arguments passed");
+  }
+
+  vector<llvm::Value *> args_v;
+  for (uint i = 0, e = args.size(); i != e; ++i) {
+    args_v.push_back(args[i]->codegen());
+    if (!args_v.back()) {
+      return nullptr;
+    }
+  }
+
+  return BUILDER->CreateCall(callee_f, args_v, "calltmp");
+}
 
 PrototypeAST::PrototypeAST(const string &name, vector<string> args)
     : name(name), args(std::move(args)) {}
