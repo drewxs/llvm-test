@@ -4,8 +4,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <llvm/ADT/APFloat.h>
+#include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Value.h>
+#include <llvm/IR/Verifier.h>
 #include <utility>
 
 NumExprAST::NumExprAST(double val) : val(val) {}
@@ -85,13 +89,58 @@ llvm::Value *CallExprAST::codegen() {
 PrototypeAST::PrototypeAST(const string &name, vector<string> args)
     : name(name), args(std::move(args)) {}
 
-llvm::Value *PrototypeAST::codegen() { return nullptr; }
+string PrototypeAST::getName() { return name; }
+
+llvm::Function *PrototypeAST::codegen() {
+  vector<llvm::Type *> doubles(args.size(), llvm::Type::getDoubleTy(*CONTEXT));
+  llvm::FunctionType *FT = llvm::FunctionType::get(
+      llvm::Type::getDoubleTy(*CONTEXT), doubles, false);
+  llvm::Function *F = llvm::Function::Create(
+      FT, llvm::Function::ExternalLinkage, name, MODULE.get());
+
+  uint idx = 0;
+  for (auto &arg : F->args()) {
+    arg.setName(args[idx++]);
+  }
+
+  return F;
+}
 
 FunctionAST::FunctionAST(unique_ptr<PrototypeAST> proto,
                          unique_ptr<ExprAST> body)
     : proto(std::move(proto)), body(std::move(body)) {}
 
-llvm::Value *FunctionAST::codegen() { return nullptr; }
+llvm::Function *FunctionAST::codegen() {
+  llvm::Function *F = MODULE->getFunction(proto->getName());
+
+  if (!F) {
+    F = proto->codegen();
+  }
+  if (!F) {
+    return nullptr;
+  }
+
+  if (!F->empty()) {
+    return (llvm::Function *)log_err_v("Function already defined");
+  }
+
+  llvm::BasicBlock *BB = llvm::BasicBlock::Create(*CONTEXT, "entry", F);
+  BUILDER->SetInsertPoint(BB);
+
+  NAMED_VALUES.clear();
+  for (auto &arg : F->args()) {
+    NAMED_VALUES[string(arg.getName())] = &arg;
+  }
+
+  if (llvm::Value *ret_val = body->codegen()) {
+    BUILDER->CreateRet(ret_val);
+    verifyFunction(*F);
+    return F;
+  }
+
+  F->eraseFromParent();
+  return nullptr;
+}
 
 std::unique_ptr<ExprAST> log_err(const char *str) {
   fprintf(stderr, "Error: %s\n", str);

@@ -245,7 +245,7 @@ static void handle_top_level_expr() {
 
 void main_loop() {
   while (true) {
-    fprintf(stderr, "ready> ");
+    fprintf(stderr, "kld> ");
     switch (cur_tok) {
     case Token::tok_def:
       handle_def();

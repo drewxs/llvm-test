@@ -4,7 +4,7 @@
 #include <cstdlib>
 
 int main() {
-  fprintf(stderr, "ready> ");
+  fprintf(stderr, "kld> ");
   get_next_token();
 
   main_loop();

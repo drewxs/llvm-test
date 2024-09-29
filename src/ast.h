@@ -1,6 +1,7 @@
 #ifndef AST_H
 #define AST_H
 
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Value.h>
 #include <memory>
 #include <string>
@@ -61,7 +62,8 @@ class PrototypeAST {
 public:
   virtual ~PrototypeAST() = default;
   PrototypeAST(const string &name, vector<string> args);
-  llvm::Value *codegen();
+  string getName();
+  llvm::Function *codegen();
 };
 
 class FunctionAST {
@@ -71,7 +73,7 @@ class FunctionAST {
 public:
   virtual ~FunctionAST() = default;
   FunctionAST(unique_ptr<PrototypeAST> proto, unique_ptr<ExprAST> body);
-  llvm::Value *codegen();
+  llvm::Function *codegen();
 };
 
 std::unique_ptr<ExprAST> log_err(const char *str);
