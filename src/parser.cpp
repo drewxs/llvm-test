@@ -6,6 +6,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <llvm/Support/raw_ostream.h>
 #include <map>
 #include <memory>
 #include <utility>
@@ -219,25 +220,38 @@ static unique_ptr<PrototypeAST> parse_extern() {
 /// Top-level parsing
 
 static void handle_def() {
-  if (parse_def()) {
-    fprintf(stderr, "Parsed a function definition.\n");
+  if (auto fn_ast = parse_def()) {
+    if (auto *fn_IR = fn_ast->codegen()) {
+      fprintf(stderr, "Read function definition:");
+      fn_IR->print(llvm::errs());
+      fprintf(stderr, "\n");
+    }
   } else {
     get_next_token();
   }
 }
 
 static void handle_extern() {
-  if (parse_extern()) {
-    fprintf(stderr, "Parsed an extern.\n");
+  if (auto proto_ast = parse_extern()) {
+    if (auto *fn_IR = proto_ast->codegen()) {
+      fprintf(stderr, "Read extern: ");
+      fn_IR->print(llvm::errs());
+      fprintf(stderr, "\n");
+    }
   } else {
     get_next_token();
   }
 }
 
-/// eval top-level expression into an anonymous function
 static void handle_top_level_expr() {
-  if (parse_top_level_expr()) {
-    fprintf(stderr, "Parsed a top-level expression.\n");
+  if (auto fn_ast = parse_top_level_expr()) {
+    if (auto *fn_IR = fn_ast->codegen()) {
+      fprintf(stderr, "Read top-level expression:");
+      fn_IR->print(llvm::errs());
+      fprintf(stderr, "\n");
+
+      fn_IR->eraseFromParent();
+    }
   } else {
     get_next_token();
   }
