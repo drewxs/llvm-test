@@ -10,7 +10,7 @@
 #include <memory>
 #include <utility>
 
-using namespace std;
+using std::map;
 
 static int cur_tok;
 int get_next_token() { return cur_tok = gettok(); }
@@ -37,16 +37,6 @@ static int get_tok_precedence() {
   return tok_prec;
 }
 
-/// Helpers for error handling.
-static unique_ptr<ExprAST> log_error(const char *str) {
-  fprintf(stderr, "Error: %s\n", str);
-  return nullptr;
-}
-static unique_ptr<PrototypeAST> log_error_p(const char *str) {
-  log_error(str);
-  return nullptr;
-}
-
 static unique_ptr<ExprAST> parse_expr();
 
 /// num_expr -> number
@@ -64,7 +54,7 @@ static unique_ptr<ExprAST> parse_paren_expr() {
     return nullptr;
   }
   if (cur_tok != ')') {
-    return log_error("expected ')'");
+    return log_err("expected ')'");
   }
   get_next_token(); // consume ')'
   return result;
@@ -98,7 +88,7 @@ static unique_ptr<ExprAST> parse_ident_expr() {
       }
 
       if (cur_tok != ',') {
-        return log_error("expected ')'or ',' in argument list");
+        return log_err("expected ')'or ',' in argument list");
       }
 
       get_next_token();
@@ -123,7 +113,7 @@ static unique_ptr<ExprAST> parse_primary() {
   case '(':
     return parse_paren_expr();
   default:
-    return log_error("unknown token when expecting an expression");
+    return log_err("unknown token when expecting an expression");
   }
 }
 
@@ -170,14 +160,14 @@ static unique_ptr<ExprAST> parse_expr() {
 /// prototype -> id '(' id* ')'
 static unique_ptr<PrototypeAST> parse_prototype() {
   if (cur_tok != tok_ident) {
-    return log_error_p("Expected function name in prototype");
+    return log_err_p("Expected function name in prototype");
   }
 
   string fn_name = ident_str;
   get_next_token();
 
   if (cur_tok != '(') {
-    return log_error_p("Expected '(' in prototype");
+    return log_err_p("Expected '(' in prototype");
   }
 
   vector<string> arg_names;
@@ -186,7 +176,7 @@ static unique_ptr<PrototypeAST> parse_prototype() {
   }
 
   if (cur_tok != ')') {
-    return log_error_p("Expected ')' in prototype");
+    return log_err_p("Expected ')' in prototype");
   }
 
   // success

@@ -9,9 +9,9 @@
 #include <memory>
 #include <string>
 
-extern std::unique_ptr<llvm::LLVMContext> THE_CONTEXT;
+extern std::unique_ptr<llvm::LLVMContext> CONTEXT;
 extern std::unique_ptr<llvm::IRBuilder<>> BUILDER;
-extern std::unique_ptr<llvm::Module> THE_MODULE;
+extern std::unique_ptr<llvm::Module> MODULE;
 extern std::map<std::string, llvm::Value *> NAMED_VALUES;
 
 #endif

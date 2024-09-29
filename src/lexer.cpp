@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <string>
 
-using namespace std;
+using std::string;
 
 string ident_str;
 double num_val;
