@@ -15,3 +15,7 @@ make run
 # or
 ./bin/main
 ```
+
+---
+
+[License](https://github.com/drewxs/llvm-test/blob/main/LICENSE)
