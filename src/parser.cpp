@@ -13,11 +13,11 @@
 
 using std::map;
 
-static int cur_tok;
+int cur_tok;
 int get_next_token() { return cur_tok = gettok(); }
 
 /// Holds the precedence for each defined binary operator.
-static map<char, int> binop_precedence = {
+map<char, int> binop_precedence = {
     {'<', 10},
     {'+', 20},
     {'-', 20},
@@ -25,7 +25,7 @@ static map<char, int> binop_precedence = {
 };
 
 /// Get precedence of pending binary operator token.
-static int get_tok_precedence() {
+int get_tok_precedence() {
   if (!isascii(cur_tok)) {
     return -1;
   }
@@ -38,17 +38,17 @@ static int get_tok_precedence() {
   return tok_prec;
 }
 
-static unique_ptr<ExprAST> parse_expr();
+unique_ptr<ExprAST> parse_expr();
 
 /// num_expr -> number
-static unique_ptr<ExprAST> parse_num_expr() {
+unique_ptr<ExprAST> parse_num_expr() {
   auto result = std::make_unique<NumExprAST>(num_val);
   get_next_token(); // consume number
   return result;
 }
 
 /// paren_expr -> '(' expr ')'
-static unique_ptr<ExprAST> parse_paren_expr() {
+unique_ptr<ExprAST> parse_paren_expr() {
   get_next_token(); // consume '('
   auto result = parse_expr();
   if (!result) {
@@ -64,7 +64,7 @@ static unique_ptr<ExprAST> parse_paren_expr() {
 /// ident_expr
 ///   -> ident
 ///   -> ident '(' expr ')'
-static unique_ptr<ExprAST> parse_ident_expr() {
+unique_ptr<ExprAST> parse_ident_expr() {
   string id_name = ident_str;
 
   get_next_token(); // consume identifier
@@ -105,7 +105,7 @@ static unique_ptr<ExprAST> parse_ident_expr() {
 ///   -> ident_expr
 ///   -> num_expr
 ///   -> paren_expr
-static unique_ptr<ExprAST> parse_primary() {
+unique_ptr<ExprAST> parse_primary() {
   switch (cur_tok) {
   case Token::tok_ident:
     return parse_ident_expr();
@@ -119,8 +119,7 @@ static unique_ptr<ExprAST> parse_primary() {
 }
 
 /// binop_rhs -> ('+' primary)*
-static unique_ptr<ExprAST> parse_binop_rhs(int expr_prec,
-                                           unique_ptr<ExprAST> lhs) {
+unique_ptr<ExprAST> parse_binop_rhs(int expr_prec, unique_ptr<ExprAST> lhs) {
   while (true) {
     int tok_prec = get_tok_precedence();
 
@@ -149,7 +148,7 @@ static unique_ptr<ExprAST> parse_binop_rhs(int expr_prec,
 }
 
 /// expression -> primary binop_rhs
-static unique_ptr<ExprAST> parse_expr() {
+unique_ptr<ExprAST> parse_expr() {
   auto lhs = parse_primary();
   if (!lhs) {
     return nullptr;
@@ -159,7 +158,7 @@ static unique_ptr<ExprAST> parse_expr() {
 }
 
 /// prototype -> id '(' id* ')'
-static unique_ptr<PrototypeAST> parse_prototype() {
+unique_ptr<PrototypeAST> parse_prototype() {
   if (cur_tok != tok_ident) {
     return log_err_p("Expected function name in prototype");
   }
@@ -187,7 +186,7 @@ static unique_ptr<PrototypeAST> parse_prototype() {
 }
 
 /// def -> 'def' prototype expression
-static unique_ptr<FunctionAST> parse_def() {
+unique_ptr<FunctionAST> parse_def() {
   get_next_token(); // consume 'def'
   //
   auto proto = parse_prototype();
@@ -202,7 +201,7 @@ static unique_ptr<FunctionAST> parse_def() {
 }
 
 /// top_level_expr -> expression
-static unique_ptr<FunctionAST> parse_top_level_expr() {
+unique_ptr<FunctionAST> parse_top_level_expr() {
   if (auto e = parse_expr()) {
     auto proto =
         std::make_unique<PrototypeAST>("__anon_expr", vector<string>());
@@ -212,14 +211,14 @@ static unique_ptr<FunctionAST> parse_top_level_expr() {
 }
 
 /// external -> 'extern' prototype
-static unique_ptr<PrototypeAST> parse_extern() {
+unique_ptr<PrototypeAST> parse_extern() {
   get_next_token(); // consume 'extern'
   return parse_prototype();
 }
 
 /// Top-level parsing
 
-static void handle_def() {
+void handle_def() {
   if (auto fn_ast = parse_def()) {
     if (auto *fn_IR = fn_ast->codegen()) {
       fprintf(stderr, "Read function definition:");
@@ -231,7 +230,7 @@ static void handle_def() {
   }
 }
 
-static void handle_extern() {
+void handle_extern() {
   if (auto proto_ast = parse_extern()) {
     if (auto *fn_IR = proto_ast->codegen()) {
       fprintf(stderr, "Read extern: ");
@@ -243,7 +242,7 @@ static void handle_extern() {
   }
 }
 
-static void handle_top_level_expr() {
+void handle_top_level_expr() {
   if (auto fn_ast = parse_top_level_expr()) {
     if (auto *fn_IR = fn_ast->codegen()) {
       fprintf(stderr, "Read top-level expression:");
